@@ -319,7 +319,7 @@ jobs:
 
   # CMake build test (Library only).
   cmake_build:
-    name: CMake ${{ matrix.os }} CC=${{ matrix.toolchain.cc }} CXX=${{ matrix.toolchain.cxx }} tbb=${{ matrix.tbb }}
+    name: CMake ${{ matrix.os }} CC=${{ matrix.toolchain.cc }} CXX=${{ matrix.toolchain.cxx }} llfio=${{ matrix.llfio }} tbb=${{ matrix.tbb }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -330,6 +330,7 @@ jobs:
           { cc: cl, cxx: cl },
           { cc: clang, cxx: clang++ }
         ]
+        llfio: ["OFF", "ON"]
         tbb: ["OFF", "ON"]
         exclude:
           - os: macOS-latest
@@ -338,6 +339,9 @@ jobs:
             toolchain: { cc: gcc, cxx: g++ }
           - os: ubuntu-latest
             toolchain: { cc: cl, cxx: cl }
+          - os: windows-latest
+            toolchain: { cc: gcc, cxx: g++ }
+            llfio: "ON"
           - os: windows-latest
             toolchain: { cc: gcc, cxx: g++ }
             tbb: "ON"
@@ -365,13 +369,13 @@ jobs:
           choco install ninja
         if: matrix.os == 'windows-latest'
       - run: |
-          cmake --fresh -S c -B c/build -G Ninja -DCMAKE_C_COMPILER=${{ matrix.toolchain.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.toolchain.cxx }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/target -DBLAKE3_USE_TBB=${{ matrix.tbb }}
+          cmake --fresh -S c -B c/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.toolchain.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.toolchain.cxx }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/target -DBLAKE3_USE_LLFIO=${{ matrix.llfio }} -DBLAKE3_USE_TBB=${{ matrix.tbb }} -DBLAKE3_EXAMPLES=ON
           cmake --build c/build --target install
         if: matrix.os != 'windows-latest'
       - shell: cmd
         run: |
           call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" x64
-          cmake --fresh -S c -B c/build -G Ninja -DCMAKE_C_COMPILER=${{ matrix.toolchain.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.toolchain.cxx }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/target -DBLAKE3_USE_TBB=${{ matrix.tbb }} -DBLAKE3_FETCH_TBB=YES
+          cmake --fresh -S c -B c/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.toolchain.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.toolchain.cxx }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/target -DBLAKE3_USE_LLFIO=${{ matrix.llfio }} -DBLAKE3_USE_TBB=${{ matrix.tbb }} -DBLAKE3_FETCH_TBB=YES -DBLAKE3_EXAMPLES=ON
           cmake --build c/build --target install
         if: matrix.os == 'windows-latest'
 

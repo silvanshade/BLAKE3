@@ -271,6 +271,7 @@ $ cmake --build . --target install
 
 The following options are available when compiling with CMake:
 
+- `BLAKE3_USE_LLFIO`: Enable llfio memory-mapped IO (Requires a C++20 capable compiler)
 - `BLAKE3_USE_TBB`: Enable oneTBB parallelism (Requires a C++20 capable compiler)
 - `BLAKE3_FETCH_TBB`: Allow fetching oneTBB from GitHub (only if not found on system)
 - `BLAKE3_EXAMPLES`: Compile and install example programs
@@ -377,6 +378,8 @@ in call to always_inline ‘vaddq_u32’: target specific option mismatch
 -mfloat-abi=hard`.
 
 ## oneTBB-based multi-threading
+
+TODO: Add manual llfio build instructions.
 
 Optional multi-threading support with performance similar to the Rust Rayon implementation is
 available when using the oneTBB library and compiling the optional C++ support file:
