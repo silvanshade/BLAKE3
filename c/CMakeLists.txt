@@ -12,11 +12,19 @@ endif()
 project(libblake3
   VERSION 1.5.5
   DESCRIPTION "BLAKE3 C implementation"
-  LANGUAGES C ASM
+  LANGUAGES C CXX ASM
 )
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+option(BLAKE3_USE_TBB "Enable oneTBB parallelism" OFF)
+option(BLAKE3_FETCH_TBB "Allow fetching oneTBB from GitHub if not found on system" OFF)
+
+include(CTest)
 include(FeatureSummary)
 include(GNUInstallDirs)
+
+add_subdirectory(dependencies)
 
 # architecture lists for which to enable assembly / SIMD sources
 set(BLAKE3_AMD64_NAMES amd64 AMD64 x86_64)
@@ -138,6 +146,11 @@ set_target_properties(blake3 PROPERTIES
   C_EXTENSIONS OFF
 )
 target_compile_features(blake3 PUBLIC c_std_99)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
+  target_compile_features(blake3 PUBLIC cxx_std_20)
+  # else: add it further below through `BLAKE3_CMAKE_CXXFLAGS_*`
+endif()
+
 # ensure C_EXTENSIONS OFF is respected without overriding CMAKE_C_STANDARD
 # which may be set by the user or toolchain file
 if (NOT POLICY CMP0128 AND NOT DEFINED CMAKE_C_STANDARD)
@@ -204,9 +217,56 @@ else()
   message(FATAL_ERROR "BLAKE3_SIMD_TYPE is set to an unknown value: '${BLAKE3_SIMD_TYPE}'")
 endif()
 
+if(BLAKE3_USE_TBB)
+  find_package(TBB 2021.11.0 QUIET)
+  if(NOT TBB_FOUND AND NOT TARGET TBB::tbb)
+    message(WARNING
+      "oneTBB not found; disabling BLAKE3_USE_TBB\n"
+      "Enable BLAKE3_FETCH_TBB to automatically fetch and build oneTBB"
+    )
+    set(BLAKE3_USE_TBB OFF)
+  else()
+    target_sources(blake3
+      PRIVATE
+        blake3_tbb.cpp)
+    target_link_libraries(blake3
+      PUBLIC
+        # Make shared TBB a transitive dependency. The consuming program is technically not required
+        # to link TBB in order for libblake3 to function but we do this in order to prevent the
+        # possibility of multiple separate TBB runtimes being linked into a final program in case
+        # the consuming program also happens to already use TBB.
+        TBB::tbb)
+    target_compile_definitions(blake3
+      PUBLIC
+        BLAKE3_USE_TBB)
+    list(APPEND BLAKE3_USE_TBB_CXXFLAGS_GNU -fno-exceptions -fno-rtti)
+    list(APPEND BLAKE3_USE_TBB_CXXFLAGS_MSVC /EHs-c- /D_HAS_EXCEPTIONS=0 /GR)
+    if(CMAKE_VERSION VERSION_LESS 3.12)
+      list(APPEND BLAKE3_USE_TBB_CXXFLAGS_GNU -std=c++20)
+      list(APPEND BLAKE3_USE_TBB_CXXFLAGS_MSVC /std:c++20)
+    endif()
+    # Get the C++ compiler name without extension
+    get_filename_component(BLAKE3_CMAKE_CXX_COMPILER_NAME ${CMAKE_CXX_COMPILER} NAME_WE)
+    # Strip any trailing versioning from the C++ compiler name
+    string(REGEX MATCH "^(clang\\+\\+|clang-cl)" BLAKE3_CMAKE_CXX_COMPILER_NAME ${BLAKE3_CMAKE_CXX_COMPILER_NAME})
+    target_compile_options(blake3
+      PRIVATE
+        # TODO: Simplify with CMAKE_CXX_COMPILER_FRONTEND_VARIANT once min CMake version is 3.14.
+        $<$<COMPILE_LANGUAGE:CXX>:
+          $<$<STREQUAL:${CMAKE_CXX_COMPILER_ID},AppleClang>:${BLAKE3_USE_TBB_CXXFLAGS_GNU}>
+          $<$<AND:$<STREQUAL:${CMAKE_CXX_COMPILER_ID},Clang>,$<STREQUAL:${BLAKE3_CMAKE_CXX_COMPILER_NAME},clang++>>:${BLAKE3_USE_TBB_CXXFLAGS_GNU}>
+          $<$<AND:$<STREQUAL:${CMAKE_CXX_COMPILER_ID},Clang>,$<STREQUAL:${BLAKE3_CMAKE_CXX_COMPILER_NAME},clang-cl>>:${BLAKE3_USE_TBB_CXXFLAGS_MSVC}>
+          $<$<STREQUAL:${CMAKE_CXX_COMPILER_ID},GNU>:${BLAKE3_USE_TBB_CXXFLAGS_GNU}>
+          $<$<STREQUAL:${CMAKE_CXX_COMPILER_ID},MSVC>:${BLAKE3_USE_TBB_CXXFLAGS_MSVC}>
+        >
+    )
+    unset(BLAKE3_CMAKE_CXX_COMPILER_NAME)
+  endif()
+endif()
+
 # cmake install support
 install(FILES blake3.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-install(TARGETS blake3 EXPORT blake3-targets)
+install(TARGETS blake3 EXPORT blake3-targets ARCHIVE DESTINATION lib)
 install(EXPORT blake3-targets
   NAMESPACE BLAKE3::
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/blake3"
@@ -263,4 +323,9 @@ install(FILES "${CMAKE_BINARY_DIR}/libblake3.pc"
 add_feature_info("AMD64 assembly" BLAKE3_SIMD_AMD64_ASM "The library uses hand written amd64 SIMD assembly.")
 add_feature_info("x86 SIMD intrinsics" BLAKE3_SIMD_X86_INTRINSICS "The library uses x86 SIMD intrinsics.")
 add_feature_info("NEON SIMD intrinsics" BLAKE3_SIMD_NEON_INTRINSICS "The library uses NEON SIMD intrinsics.")
+add_feature_info("oneTBB parallelism" BLAKE3_USE_TBB "The library uses oneTBB parallelism.")
 feature_summary(WHAT ENABLED_FEATURES)
+
+if(BLAKE3_TESTING)
+  include(BLAKE3/Testing)
+endif()
