@@ -89,13 +89,14 @@ INLINE void output_chaining_value(const output_t *self, uint8_t cv[32]) {
 INLINE void output_root_bytes(const output_t *self, uint64_t seek, uint8_t *out,
                               size_t out_len) {
   if (out_len == 0) {
-      return;
+    return;
   }
   uint64_t output_block_counter = seek / 64;
   size_t offset_within_block = seek % 64;
   uint8_t wide_buf[64];
-  if(offset_within_block) {
-    blake3_compress_xof(self->input_cv, self->block, self->block_len, output_block_counter, self->flags | ROOT, wide_buf);
+  if (offset_within_block) {
+    blake3_compress_xof(self->input_cv, self->block, self->block_len,
+                        output_block_counter, self->flags | ROOT, wide_buf);
     const size_t available_bytes = 64 - offset_within_block;
     const size_t bytes = out_len > available_bytes ? available_bytes : out_len;
     memcpy(out, wide_buf + offset_within_block, bytes);
@@ -103,14 +104,17 @@ INLINE void output_root_bytes(const output_t *self, uint64_t seek, uint8_t *out,
     out_len -= bytes;
     output_block_counter += 1;
   }
-  if(out_len / 64) {
-    blake3_xof_many(self->input_cv, self->block, self->block_len, output_block_counter, self->flags | ROOT, out, out_len / 64);
+  if (out_len / 64) {
+    blake3_xof_many(self->input_cv, self->block, self->block_len,
+                    output_block_counter, self->flags | ROOT, out,
+                    out_len / 64);
   }
   output_block_counter += out_len / 64;
   out += out_len & -64;
   out_len -= out_len & -64;
-  if(out_len) {
-    blake3_compress_xof(self->input_cv, self->block, self->block_len, output_block_counter, self->flags | ROOT, wide_buf);
+  if (out_len) {
+    blake3_compress_xof(self->input_cv, self->block, self->block_len,
+                        output_block_counter, self->flags | ROOT, wide_buf);
     memcpy(out, wide_buf, out_len);
   }
 }
@@ -355,8 +359,8 @@ compress_subtree_to_parent_node(const uint8_t *input, size_t input_len,
 #endif
 
   uint8_t cv_array[MAX_SIMD_DEGREE_OR_2 * BLAKE3_OUT_LEN];
-  size_t num_cvs = blake3_compress_subtree_wide(input, input_len, key,
-                                                chunk_counter, flags, cv_array, use_tbb);
+  size_t num_cvs = blake3_compress_subtree_wide(
+      input, input_len, key, chunk_counter, flags, cv_array, use_tbb);
   assert(num_cvs <= MAX_SIMD_DEGREE_OR_2);
   // The following loop never executes when MAX_SIMD_DEGREE_OR_2 is 2, because
   // as we just asserted, num_cvs will always be <=2 in that case. But GCC
@@ -472,8 +476,8 @@ INLINE void hasher_push_cv(blake3_hasher *self, uint8_t new_cv[BLAKE3_OUT_LEN],
   self->cv_stack_len += 1;
 }
 
-INLINE void blake3_hasher_update_base(blake3_hasher *self, const void *input,
-                                      size_t input_len, bool use_tbb) {
+void blake3_hasher_update_base(blake3_hasher *self, const void *input,
+                               size_t input_len, bool use_tbb) {
   // Explicitly checking for zero avoids causing UB by passing a null pointer
   // to memcpy. This comes up in practice with things like:
   //   std::vector<uint8_t> v;

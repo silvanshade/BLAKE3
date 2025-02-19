@@ -255,22 +255,23 @@ The following invocation will compile and install `libblake3`:
 With recent CMake:
 
 ```
-$ cmake -S c -B c/build "-DCMAKE_INSTALL_PREFIX=/usr/local"
-$ cmake --build c/build --target install
+cmake -S c -B c/build "-DCMAKE_INSTALL_PREFIX=/usr/local"
+cmake --build c/build --target install
 ```
 
 With an older CMake:
 
 ```
-$ cd c
-$ mkdir build
-$ cd build
-$ cmake .. "-DCMAKE_INSTALL_PREFIX=/usr/local"
-$ cmake --build . --target install
+cd c
+mkdir build
+cd build
+cmake .. "-DCMAKE_INSTALL_PREFIX=/usr/local"
+cmake --build . --target install
 ```
 
 The following options are available when compiling with CMake:
 
+- `BLAKE3_USE_LLFIO`: Enable llfio memory-mapped IO (Requires a C++20 capable compiler)
 - `BLAKE3_USE_TBB`: Enable oneTBB parallelism (Requires a C++20 capable compiler)
 - `BLAKE3_FETCH_TBB`: Allow fetching oneTBB from GitHub (only if not found on system)
 - `BLAKE3_EXAMPLES`: Compile and install example programs
@@ -278,7 +279,7 @@ The following options are available when compiling with CMake:
 These can be enabled in the following way:
 
 ```
-$ cmake -S c -B c/build "-DCMAKE_INSTALL_PREFIX=/usr/local" -DCMAKE_USE_TBB=1 -DCMAKE_FETCH_TBB=1
+cmake -S c -B c/build "-DCMAKE_INSTALL_PREFIX=/usr/local" -DCMAKE_USE_TBB=1 -DCMAKE_FETCH_TBB=1
 ```
 
 ## Building manually
@@ -377,6 +378,8 @@ in call to always_inline ‘vaddq_u32’: target specific option mismatch
 -mfloat-abi=hard`.
 
 ## oneTBB-based multi-threading
+
+TODO: Add manual llfio build instructions.
 
 Optional multi-threading support with performance similar to the Rust Rayon implementation is
 available when using the oneTBB library and compiling the optional C++ support file:
