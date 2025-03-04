@@ -382,10 +382,10 @@ Optional multi-threading support with performance similar to the Rust Rayon impl
 available when using the oneTBB library and compiling the optional C++ support file:
 
 ```bash
-$g++ -c -O3 -fno-exceptions -fno-rtti blake3_tbb.cpp -o blake3_tbb.o
-$gcc -O3 -o example example.c blake3.c blake3_dispatch.c blake3_portable.c \
-    blake3_sse2_x86-64_unix.S blake3_sse41_x86-64_unix.S blake3_avx2_x86-64_unix.S \
-    blake3_avx512_x86-64_unix.S blake3_tbb.o -ltbb -lstdc++
+g++ -c -O3 -fno-exceptions -fno-rtti -DBLAKE3_USE_TBB $(pkg-config --libs --cflags tbb) -o blake3_tbb.o blake3_tbb.cpp
+gcc -O3 -o example -lstdc++ -DBLAKE3_USE_TBB $(pkg-config --libs --cflags tbb) blake3_tbb.o \
+    example.c blake3.c blake3_dispatch.c blake3_portable.c \
+    blake3_sse2_x86-64_unix.S blake3_sse41_x86-64_unix.S blake3_avx2_x86-64_unix.S blake3_avx512_x86-64_unix.S
 ```
 
 NOTE: Compiling `blake3_tbb.cpp` with C++ exceptions _disabled_ is required in order to satisfy the
