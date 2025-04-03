@@ -322,13 +322,9 @@ jobs:
     - run: echo "PKG_CONFIG_PATH=${{ github.workspace }}/target/lib/pkgconfig" >> $GITHUB_ENV
     - run: tree ${{ github.workspace }}/target
     - run: echo $(pkg-config --cflags --libs libblake3)
-    - run: |
-        gcc -O3 $(pkg-config --cflags libblake3) -o c/example.o -c c/example.c
-        gcc -O3 $(pkg-config --libs libblake3) -o ${{ github.workspace }}/target/bin/blake3-example c/example.o
+    - run: gcc -O3 -o ${{ github.workspace }}/target/bin/blake3-example c/example.c $(pkg-config --cflags --libs libblake3) -lstdc++
     - if: matrix.use_tbb == 'ON'
-      run: |
-        gcc -O3 $(pkg-config --cflags libblake3) -o c/example_tbb.o -c c/example_tbb.c
-        gcc -O3 $(pkg-config --cflags --libs libblake3) -o ${{ github.workspace }}/target/bin/blake3-example-tbb c/example_tbb.o
+      run: gcc -O3 -o ${{ github.workspace }}/target/bin/blake3-example-tbb c/example_tbb.c $(pkg-config --cflags --libs libblake3) -lstdc++
 
   # # Note that this jobs builds AArch64 binaries from an x86_64 host.
   # build_apple_silicon:
