@@ -322,6 +322,10 @@ jobs:
             os: macOS-latest
           - toolchain: { cc: gcc, cxx: g++ }
             stdlib: libc++
+    env:
+      CC: ${{ matrix.toolchain.cc }}
+      CXX: ${{ matrix.toolchain.cxx }}
+      CXXFLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
     steps:
     - uses: actions/checkout@v4
     - name: install dependencies
@@ -331,13 +335,6 @@ jobs:
     - name: install dependencies (libc++)
       if: matrix.stdlib == 'libc++'
       run: sudo apt-get install libc++-dev libc++abi-dev
-    - name: configure toolchain
-      run: |
-        echo "CC=${{ matrix.toolchain.cc }}" >> $GITHUB_ENV
-        echo "CXX=${{ matrix.toolchain.cxx }}" >> $GITHUB_ENV
-    - name: configure toolchain (libc++)
-      if: matrix.stdlib == 'libc++'
-      run: echo "CXXFLAGS=${CXXFLAGS} -stdlib=libc++" >> $GITHUB_ENV
     - name: configure libblake3
       run: cmake --fresh -S c -B c/build -G Ninja -DCMAKE_VERBOSE_MAKEFILE=1 "-DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/target" "-DBLAKE3_USE_TBB=${{ matrix.use_tbb }}" "-DBUILD_SHARED_LIBS=${{ matrix.shared_libs }}" -DBLAKE3_EXAMPLES=0
     - name: build libblake3
@@ -381,6 +378,10 @@ jobs:
             os: macOS-latest
           - toolchain: { cc: gcc, cxx: g++ }
             stdlib: libc++
+    env:
+      CC: ${{ matrix.toolchain.cc }}
+      CXX: ${{ matrix.toolchain.cxx }}
+      CXXFLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
     steps:
     - uses: actions/checkout@v4
     - name: install dependencies
@@ -390,13 +391,6 @@ jobs:
     - name: install dependencies (libc++)
       if: matrix.stdlib == 'libc++'
       run: sudo apt-get install libc++-dev libc++abi-dev
-    - name: configure toolchain
-      run: |
-        echo "CC=${{ matrix.toolchain.cc }}" >> $GITHUB_ENV
-        echo "CXX=${{ matrix.toolchain.cxx }}" >> $GITHUB_ENV
-    - name: configure toolchain (libc++)
-      if: matrix.stdlib == 'libc++'
-      run: echo "CXXFLAGS=${CXXFLAGS} -stdlib=libc++" >> $GITHUB_ENV
     - name: configure libblake3
       run: cmake --fresh -S c -B c/build -G Ninja -DCMAKE_VERBOSE_MAKEFILE=1 "-DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/target" "-DBLAKE3_USE_TBB=${{ matrix.use_tbb }}" "-DBUILD_SHARED_LIBS=${{ matrix.shared_libs }}" -DBLAKE3_EXAMPLES=0
     - name: build libblake3
